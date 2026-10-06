@@ -1,17 +1,10 @@
-from pathlib import Path
-import zipfile
-
-src = Path("/mnt/data/Pasted text(20261006-105843).txt")
-out = Path("/mnt/data/MilkFlow_Lite_Prototype_v3.html")
-
-# Read the exact file the user uploaded.
-html = src.read_text(encoding="utf-8")
-
-# Replace the CSS block with a polished responsive + dark-mode version.
-start = html.index("<style>")
-end = html.index("</style>") + len("</style>")
-
-css = r"""<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MilkFlow — Milk Business Management</title>
+<style>
 :root{
   --bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#6b7280;
   --primary:#2563eb;--primary2:#1d4ed8;--border:#e5e7eb;
@@ -118,43 +111,78 @@ body.dark .notice{background:#0f2344;border-color:#1e40af;color:#bfdbfe}
   .actions{flex-direction:column}.actions .btn{width:100%}
   .top-actions{position:absolute;right:14px;top:70px}
 }
-</style>"""
-
-html = html[:start] + css + html[end:]
-
-# Add mobile header and overlay.
-html = html.replace(
-    '<body>\n<div class="app">',
-    '''<body>
+</style>
+</head>
+<body>
 <div class="mobilebar">
   <button class="menu-btn" onclick="toggleMenu()">☰</button>
   <div class="mobile-title">Milk<span style="color:#60a5fa">Flow</span></div>
 </div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-<div class="app">'''
-)
-
-# Add WhatsApp and dark mode controls to sidebar.
-html = html.replace(
-    '<button onclick="show(\'reports\',this)">Reports</button>',
-    '''<button onclick="show('reports',this)">Reports</button>
-<button onclick="show('whatsapp',this)">WhatsApp <span class="soon">Coming Soon</span></button>'''
-)
-
-# Add dark mode button in top bar.
-html = html.replace(
-    '<div class="top"><h1 id="title">Dashboard</h1><div class="date" id="today"></div></div>',
-    '''<div class="top">
+<div class="app">
+<aside class="side"><div class="logo">Milk<span>Flow</span></div>
+<div class="nav">
+<button class="active" onclick="show('dashboard',this)">Dashboard</button>
+<button onclick="show('milk',this)">Milk Entries</button>
+<button onclick="show('customers',this)">Customers</button>
+<button onclick="show('payments',this)">Payments</button>
+<button onclick="show('reports',this)">Reports</button>
+<button onclick="show('whatsapp',this)">WhatsApp <span class="soon">Coming Soon</span></button>
+</div></aside>
+<main class="main">
+<div class="top">
   <h1 id="title">Dashboard</h1>
   <div class="top-actions">
     <button class="icon-btn" id="themeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">☾</button>
     <div class="date" id="today"></div>
   </div>
-</div>'''
-)
+</div>
 
-# Add WhatsApp page before closing main.
-whatsapp_section = r'''
+<section id="dashboard" class="page active">
+<div class="notice">Prototype mode: data is stored in this browser using localStorage. It is ready for a client demo, but is not yet a production multi-user system.</div>
+<div class="cards">
+<div class="card"><div class="label">Today's Milk</div><div class="value" id="dMilk">0 L</div></div>
+<div class="card"><div class="label">Today's Sales</div><div class="value green" id="dSales">₹0</div></div>
+<div class="card"><div class="label">Customers</div><div class="value" id="dCustomers">0</div></div>
+<div class="card"><div class="label">Outstanding</div><div class="value red" id="dDue">₹0</div></div>
+</div>
+<div class="grid"><div class="panel"><h3>Recent Milk Entries</h3><div id="recentMilk"></div></div>
+<div class="panel"><h3>Quick Actions</h3><div class="actions">
+<button class="btn" onclick="show('milk')">+ Add Milk Entry</button>
+<button class="btn secondary" onclick="show('customers')">+ Add Customer</button>
+<button class="btn secondary" onclick="show('payments')">+ Record Payment</button>
+</div></div></div>
+</section>
+
+<section id="milk" class="page"><div class="panel"><h3>Add Milk Entry</h3>
+<div class="form">
+<div class="field"><label>Date</label><input id="mDate" type="date"></div>
+<div class="field"><label>Customer / Supplier</label><select id="mPerson"></select></div>
+<div class="field"><label>Session</label><select id="mSession"><option>Morning</option><option>Evening</option></select></div>
+<div class="field"><label>Quantity (litres)</label><input id="mQty" type="number" step="0.1" placeholder="10"></div>
+<div class="field"><label>Rate (₹/L)</label><input id="mRate" type="number" step="0.1" value="60"></div>
+<div class="field"><label>Fat % (optional)</label><input id="mFat" type="number" step="0.1" placeholder="4.0"></div>
+<div class="full"><button class="btn" onclick="addMilk()">Save Milk Entry</button></div>
+</div></div>
+<div class="panel" style="margin-top:16px"><h3>Milk Ledger</h3><div id="milkTable"></div></div></section>
+
+<section id="customers" class="page"><div class="panel"><h3>Add Customer</h3>
+<div class="form"><div class="field"><label>Name</label><input id="cName" placeholder="Customer name"></div>
+<div class="field"><label>Phone</label><input id="cPhone" placeholder="+91"></div>
+<div class="field"><label>Default Rate (₹/L)</label><input id="cRate" type="number" value="60"></div>
+<div class="full"><button class="btn" onclick="addCustomer()">Add Customer</button></div></div></div>
+<div class="panel" style="margin-top:16px"><h3>Customer List</h3><div id="customerTable"></div></div></section>
+
+<section id="payments" class="page"><div class="panel"><h3>Record Payment</h3>
+<div class="form"><div class="field"><label>Customer</label><select id="pPerson"></select></div>
+<div class="field"><label>Amount (₹)</label><input id="pAmount" type="number" placeholder="1000"></div>
+<div class="field"><label>Payment Mode</label><select id="pMode"><option>Cash</option><option>UPI</option><option>Bank Transfer</option></select></div>
+<div class="full"><button class="btn" onclick="addPayment()">Save Payment</button></div></div></div>
+<div class="panel" style="margin-top:16px"><h3>Payment History</h3><div id="paymentTable"></div></div></section>
+
+<section id="reports" class="page"><div class="panel"><h3>Business Summary</h3><div id="reportSummary"></div>
+<div class="actions" style="margin-top:16px"><button class="btn" onclick="exportCSV()">Export CSV</button><button class="btn danger" onclick="resetData()">Reset Demo Data</button></div></div></section>
+
 <section id="whatsapp" class="page">
   <div class="panel">
     <div class="whatsapp-card">
@@ -179,12 +207,15 @@ whatsapp_section = r'''
     </table>
   </div>
 </section>
-'''
-html = html.replace('</main></div>\n\n<script>', whatsapp_section + '</main></div>\n\n<script>')
+</main></div>
 
-# Replace show function and add menu/dark mode functions.
-old_show = """function show(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');document.getElementById('title').textContent=id[0].toUpperCase()+id.slice(1);render()}"""
-new_show = """function show(id,btn){
+<script>
+const key='milkflow_demo_v1';
+let db=JSON.parse(localStorage.getItem(key)||'null')||{customers:[],milk:[],payments:[]};
+function save(){localStorage.setItem(key,JSON.stringify(db));render();}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0})}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function show(id,btn){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
@@ -211,38 +242,25 @@ function initTheme(){
   if(dark)document.body.classList.add('dark');
   const b=document.getElementById('themeBtn');
   if(b)b.textContent=dark?'☀':'☾';
-}"""
-if old_show not in html:
-    raise RuntimeError("show function not found")
-html = html.replace(old_show, new_show)
-
-# Initialize theme before render.
-html = html.replace('\nrender();\n</script>', '\ninitTheme();\nrender();\n</script>')
-
-out.write_text(html, encoding="utf-8")
-
-# Create a ZIP containing the corrected file and a simple readme.
-zip_path = Path("/mnt/data/MilkFlow_Lite_Prototype_v3.zip")
-readme = Path("/mnt/data/MilkFlow_Lite_Prototype_v3_README.txt")
-readme.write_text(
-"""MilkFlow Lite Prototype v3
-
-Changes:
-- Proper mobile hamburger navigation instead of collapsed dots
-- Responsive mobile/tablet layout
-- Dark mode toggle with browser persistence
-- WhatsApp Integration section marked "Coming Soon"
-- Planned WhatsApp features displayed
-- Existing milk, customer, payment, reports and CSV features retained
-
-Deployment:
-Replace the existing index.html in your GitHub repository with this file.
-Render should automatically redeploy the same site URL.
-""", encoding="utf-8"
-)
-with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-    z.write(out, "index.html")
-    z.write(readme, "README.txt")
-
-print(f"Created corrected HTML: {out}")
-print(f"Created ZIP: {zip_path}")
+}
+function addCustomer(){let n=cName.value.trim();if(!n)return alert('Enter a customer name');db.customers.push({id:Date.now(),name:n,phone:cPhone.value.trim(),rate:Number(cRate.value)||60});cName.value='';cPhone.value='';save()}
+function addMilk(){let person=mPerson.value,q=Number(mQty.value),r=Number(mRate.value);if(!person||!q||!r)return alert('Select a customer and enter quantity/rate');db.milk.push({id:Date.now(),date:mDate.value,person,session:mSession.value,qty:q,rate:r,fat:mFat.value});mQty.value='';mFat.value='';save()}
+function addPayment(){let person=pPerson.value,a=Number(pAmount.value);if(!person||!a)return alert('Select a customer and enter amount');db.payments.push({id:Date.now(),date:new Date().toISOString().slice(0,10),person,amount:a,mode:pMode.value});pAmount.value='';save()}
+function render(){
+let today=new Date().toISOString().slice(0,10);document.getElementById('today').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
+mDate.value ||= today;
+let milkToday=db.milk.filter(x=>x.date===today), litres=milkToday.reduce((a,x)=>a+x.qty,0), sales=milkToday.reduce((a,x)=>a+x.qty*x.rate,0);
+dMilk.textContent=litres.toFixed(1)+' L';dSales.textContent=money(sales);dCustomers.textContent=db.customers.length;
+let totalSales=db.milk.reduce((a,x)=>a+x.qty*x.rate,0), paid=db.payments.reduce((a,x)=>a+x.amount,0);dDue.textContent=money(Math.max(0,totalSales-paid));
+let opts='<option value="">Select</option>'+db.customers.map(c=>`<option>${esc(c.name)}</option>`).join('');mPerson.innerHTML=opts;pPerson.innerHTML=opts;
+recentMilk.innerHTML=milkToday.length?'<table><tr><th>Customer</th><th>Session</th><th>Qty</th><th>Amount</th></tr>'+milkToday.slice(-6).reverse().map(x=>`<tr><td>${esc(x.person)}</td><td>${x.session}</td><td>${x.qty} L</td><td>${money(x.qty*x.rate)}</td></tr>`).join('')+'</table>':'<div class="empty">No entries today.</div>';
+milkTable.innerHTML=db.milk.length?'<table><tr><th>Date</th><th>Customer</th><th>Session</th><th>Qty</th><th>Rate</th><th>Total</th></tr>'+db.milk.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${esc(x.person)}</td><td>${x.session}</td><td>${x.qty} L</td><td>${money(x.rate)}</td><td>${money(x.qty*x.rate)}</td></tr>`).join('')+'</table>':'<div class="empty">No milk entries.</div>';
+customerTable.innerHTML=db.customers.length?'<table><tr><th>Name</th><th>Phone</th><th>Rate</th><th>Milk Value</th><th>Paid</th></tr>'+db.customers.map(c=>{let v=db.milk.filter(x=>x.person===c.name).reduce((a,x)=>a+x.qty*x.rate,0),p=db.payments.filter(x=>x.person===c.name).reduce((a,x)=>a+x.amount,0);return `<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${money(c.rate)}/L</td><td>${money(v)}</td><td>${money(p)}</td></tr>`}).join('')+'</table>':'<div class="empty">No customers yet.</div>';
+paymentTable.innerHTML=db.payments.length?'<table><tr><th>Date</th><th>Customer</th><th>Mode</th><th>Amount</th></tr>'+db.payments.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${esc(x.person)}</td><td>${x.mode}</td><td>${money(x.amount)}</td></tr>`).join('')+'</table>':'<div class="empty">No payments yet.</div>';
+reportSummary.innerHTML=`<table><tr><th>Metric</th><th>Value</th></tr><tr><td>Total milk recorded</td><td>${db.milk.reduce((a,x)=>a+x.qty,0).toFixed(1)} L</td></tr><tr><td>Total sales value</td><td>${money(totalSales)}</td></tr><tr><td>Total payments received</td><td>${money(paid)}</td></tr><tr><td>Outstanding</td><td>${money(Math.max(0,totalSales-paid))}</td></tr><tr><td>Customers</td><td>${db.customers.length}</td></tr></table>`;
+}
+function exportCSV(){let rows=[['Date','Customer','Session','Quantity L','Rate','Total']].concat(db.milk.map(x=>[x.date,x.person,x.session,x.qty,x.rate,x.qty*x.rate]));let csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='milkflow-milk-ledger.csv';a.click()}
+function resetData(){if(confirm('Reset all demo data?')){db={customers:[],milk:[],payments:[]};save()}}
+initTheme();
+render();
+</script></body></html>
