@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MilkFlow — Milk Business Management</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#6b7280;--primary:#2563eb;--border:#e5e7eb;--green:#16a34a;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.app{display:flex;min-height:100vh}.side{width:235px;background:#111827;color:#fff;padding:22px 14px;position:fixed;height:100vh}
+.logo{font-size:21px;font-weight:800;padding:8px 12px 25px}.logo span{color:#60a5fa}
+.nav button{width:100%;background:transparent;border:0;color:#cbd5e1;text-align:left;padding:12px 13px;border-radius:9px;margin:2px 0;cursor:pointer;font-size:14px}
+.nav button.active,.nav button:hover{background:#1f2937;color:#fff}.main{margin-left:235px;width:calc(100% - 235px);padding:28px;max-width:1500px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.top h1{margin:0;font-size:26px}.date{color:var(--muted);font-size:13px}
+.page{display:none}.page.active{display:block}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:19px}.label{color:var(--muted);font-size:13px}.value{font-size:25px;font-weight:800;margin-top:8px}.green{color:var(--green)}.red{color:var(--red)}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:18px}.panel{background:#fff;border:1px solid var(--border);border-radius:13px;padding:19px}.panel h3{margin:0 0 16px;font-size:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--border)}th{color:var(--muted);font-weight:600}
+.btn{background:var(--primary);color:#fff;border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:600}.btn.secondary{background:#eef2ff;color:#1d4ed8}.btn.danger{background:#fee2e2;color:#b91c1c}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.form{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff}.full{grid-column:1/-1}
+.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.toolbar input{padding:10px;border:1px solid var(--border);border-radius:8px;width:240px}
+.badge{padding:4px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px}.empty{text-align:center;color:var(--muted);padding:25px}
+.notice{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:12px;font-size:13px;margin-bottom:16px}
+@media(max-width:900px){.side{width:70px}.logo{font-size:0}.logo:after{content:"M";font-size:22px}.nav button{font-size:0;text-align:center}.nav button:before{content:"•";font-size:22px}.main{margin-left:70px;width:calc(100% - 70px);padding:18px}.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side"><div class="logo">Milk<span>Flow</span></div>
+<div class="nav">
+<button class="active" onclick="show('dashboard',this)">Dashboard</button>
+<button onclick="show('milk',this)">Milk Entries</button>
+<button onclick="show('customers',this)">Customers</button>
+<button onclick="show('payments',this)">Payments</button>
+<button onclick="show('reports',this)">Reports</button>
+</div></aside>
+<main class="main">
+<div class="top"><h1 id="title">Dashboard</h1><div class="date" id="today"></div></div>
+
+<section id="dashboard" class="page active">
+<div class="notice">Prototype mode: data is stored in this browser using localStorage. It is ready for a client demo, but is not yet a production multi-user system.</div>
+<div class="cards">
+<div class="card"><div class="label">Today's Milk</div><div class="value" id="dMilk">0 L</div></div>
+<div class="card"><div class="label">Today's Sales</div><div class="value green" id="dSales">₹0</div></div>
+<div class="card"><div class="label">Customers</div><div class="value" id="dCustomers">0</div></div>
+<div class="card"><div class="label">Outstanding</div><div class="value red" id="dDue">₹0</div></div>
+</div>
+<div class="grid"><div class="panel"><h3>Recent Milk Entries</h3><div id="recentMilk"></div></div>
+<div class="panel"><h3>Quick Actions</h3><div class="actions">
+<button class="btn" onclick="show('milk')">+ Add Milk Entry</button>
+<button class="btn secondary" onclick="show('customers')">+ Add Customer</button>
+<button class="btn secondary" onclick="show('payments')">+ Record Payment</button>
+</div></div></div>
+</section>
+
+<section id="milk" class="page"><div class="panel"><h3>Add Milk Entry</h3>
+<div class="form">
+<div class="field"><label>Date</label><input id="mDate" type="date"></div>
+<div class="field"><label>Customer / Supplier</label><select id="mPerson"></select></div>
+<div class="field"><label>Session</label><select id="mSession"><option>Morning</option><option>Evening</option></select></div>
+<div class="field"><label>Quantity (litres)</label><input id="mQty" type="number" step="0.1" placeholder="10"></div>
+<div class="field"><label>Rate (₹/L)</label><input id="mRate" type="number" step="0.1" value="60"></div>
+<div class="field"><label>Fat % (optional)</label><input id="mFat" type="number" step="0.1" placeholder="4.0"></div>
+<div class="full"><button class="btn" onclick="addMilk()">Save Milk Entry</button></div>
+</div></div>
+<div class="panel" style="margin-top:16px"><h3>Milk Ledger</h3><div id="milkTable"></div></div></section>
+
+<section id="customers" class="page"><div class="panel"><h3>Add Customer</h3>
+<div class="form"><div class="field"><label>Name</label><input id="cName" placeholder="Customer name"></div>
+<div class="field"><label>Phone</label><input id="cPhone" placeholder="+91"></div>
+<div class="field"><label>Default Rate (₹/L)</label><input id="cRate" type="number" value="60"></div>
+<div class="full"><button class="btn" onclick="addCustomer()">Add Customer</button></div></div></div>
+<div class="panel" style="margin-top:16px"><h3>Customer List</h3><div id="customerTable"></div></div></section>
+
+<section id="payments" class="page"><div class="panel"><h3>Record Payment</h3>
+<div class="form"><div class="field"><label>Customer</label><select id="pPerson"></select></div>
+<div class="field"><label>Amount (₹)</label><input id="pAmount" type="number" placeholder="1000"></div>
+<div class="field"><label>Payment Mode</label><select id="pMode"><option>Cash</option><option>UPI</option><option>Bank Transfer</option></select></div>
+<div class="full"><button class="btn" onclick="addPayment()">Save Payment</button></div></div></div>
+<div class="panel" style="margin-top:16px"><h3>Payment History</h3><div id="paymentTable"></div></div></section>
+
+<section id="reports" class="page"><div class="panel"><h3>Business Summary</h3><div id="reportSummary"></div>
+<div class="actions" style="margin-top:16px"><button class="btn" onclick="exportCSV()">Export CSV</button><button class="btn danger" onclick="resetData()">Reset Demo Data</button></div></div></section>
+</main></div>
+
+<script>
+const key='milkflow_demo_v1';
+let db=JSON.parse(localStorage.getItem(key)||'null')||{customers:[],milk:[],payments:[]};
+function save(){localStorage.setItem(key,JSON.stringify(db));render();}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0})}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function show(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');document.getElementById('title').textContent=id[0].toUpperCase()+id.slice(1);render()}
+function addCustomer(){let n=cName.value.trim();if(!n)return alert('Enter a customer name');db.customers.push({id:Date.now(),name:n,phone:cPhone.value.trim(),rate:Number(cRate.value)||60});cName.value='';cPhone.value='';save()}
+function addMilk(){let person=mPerson.value,q=Number(mQty.value),r=Number(mRate.value);if(!person||!q||!r)return alert('Select a customer and enter quantity/rate');db.milk.push({id:Date.now(),date:mDate.value,person,session:mSession.value,qty:q,rate:r,fat:mFat.value});mQty.value='';mFat.value='';save()}
+function addPayment(){let person=pPerson.value,a=Number(pAmount.value);if(!person||!a)return alert('Select a customer and enter amount');db.payments.push({id:Date.now(),date:new Date().toISOString().slice(0,10),person,amount:a,mode:pMode.value});pAmount.value='';save()}
+function render(){
+let today=new Date().toISOString().slice(0,10);document.getElementById('today').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
+mDate.value ||= today;
+let milkToday=db.milk.filter(x=>x.date===today), litres=milkToday.reduce((a,x)=>a+x.qty,0), sales=milkToday.reduce((a,x)=>a+x.qty*x.rate,0);
+dMilk.textContent=litres.toFixed(1)+' L';dSales.textContent=money(sales);dCustomers.textContent=db.customers.length;
+let totalSales=db.milk.reduce((a,x)=>a+x.qty*x.rate,0), paid=db.payments.reduce((a,x)=>a+x.amount,0);dDue.textContent=money(Math.max(0,totalSales-paid));
+let opts='<option value="">Select</option>'+db.customers.map(c=>`<option>${esc(c.name)}</option>`).join('');mPerson.innerHTML=opts;pPerson.innerHTML=opts;
+recentMilk.innerHTML=milkToday.length?'<table><tr><th>Customer</th><th>Session</th><th>Qty</th><th>Amount</th></tr>'+milkToday.slice(-6).reverse().map(x=>`<tr><td>${esc(x.person)}</td><td>${x.session}</td><td>${x.qty} L</td><td>${money(x.qty*x.rate)}</td></tr>`).join('')+'</table>':'<div class="empty">No entries today.</div>';
+milkTable.innerHTML=db.milk.length?'<table><tr><th>Date</th><th>Customer</th><th>Session</th><th>Qty</th><th>Rate</th><th>Total</th></tr>'+db.milk.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${esc(x.person)}</td><td>${x.session}</td><td>${x.qty} L</td><td>${money(x.rate)}</td><td>${money(x.qty*x.rate)}</td></tr>`).join('')+'</table>':'<div class="empty">No milk entries.</div>';
+customerTable.innerHTML=db.customers.length?'<table><tr><th>Name</th><th>Phone</th><th>Rate</th><th>Milk Value</th><th>Paid</th></tr>'+db.customers.map(c=>{let v=db.milk.filter(x=>x.person===c.name).reduce((a,x)=>a+x.qty*x.rate,0),p=db.payments.filter(x=>x.person===c.name).reduce((a,x)=>a+x.amount,0);return `<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${money(c.rate)}/L</td><td>${money(v)}</td><td>${money(p)}</td></tr>`}).join('')+'</table>':'<div class="empty">No customers yet.</div>';
+paymentTable.innerHTML=db.payments.length?'<table><tr><th>Date</th><th>Customer</th><th>Mode</th><th>Amount</th></tr>'+db.payments.slice().reverse().map(x=>`<tr><td>${x.date}</td><td>${esc(x.person)}</td><td>${x.mode}</td><td>${money(x.amount)}</td></tr>`).join('')+'</table>':'<div class="empty">No payments yet.</div>';
+reportSummary.innerHTML=`<table><tr><th>Metric</th><th>Value</th></tr><tr><td>Total milk recorded</td><td>${db.milk.reduce((a,x)=>a+x.qty,0).toFixed(1)} L</td></tr><tr><td>Total sales value</td><td>${money(totalSales)}</td></tr><tr><td>Total payments received</td><td>${money(paid)}</td></tr><tr><td>Outstanding</td><td>${money(Math.max(0,totalSales-paid))}</td></tr><tr><td>Customers</td><td>${db.customers.length}</td></tr></table>`;
+}
+function exportCSV(){let rows=[['Date','Customer','Session','Quantity L','Rate','Total']].concat(db.milk.map(x=>[x.date,x.person,x.session,x.qty,x.rate,x.qty*x.rate]));let csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='milkflow-milk-ledger.csv';a.click()}
+function resetData(){if(confirm('Reset all demo data?')){db={customers:[],milk:[],payments:[]};save()}}
+render();
+</script></body></html>
